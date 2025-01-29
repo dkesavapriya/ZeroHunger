@@ -23,9 +23,9 @@ class Donation(db.Model):
     accepted_by = db.relationship("User", foreign_keys=[accepted_by_id])
     is_accepted = db.Column(db.Boolean, default=False)  # New field
     #accepted_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # New field
-'''class Volunteer(db.Model):
+class Volunteer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     role = db.Column(db.String(50), nullable=False)
-    location = db.Column(db.String(200), nullable=True)'''
+    location = db.Column(db.String(200), nullable=True)
