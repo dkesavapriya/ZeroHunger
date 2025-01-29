@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Available Donations</title>
+</head>
+<body>
+    <h1>Available Donations</h1>
+    <ul id="donation-list"></ul>
+
+    <script>
+        async function fetchDonations() {
+            const token = localStorage.getItem("token");
+            const response = await fetch("/recipient/donations", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const result = await response.json();
+
+            if (result.donations) {
+                const list = document.getElementById("donation-list");
+                result.donations.forEach((donation) => {
+                    const item = document.createElement("li");
+                    item.innerHTML = `
+                        <strong>${donation.title}</strong> - ${donation.description}
+                        <button onclick="acceptDonation(${donation.id})">Accept</button>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        async function acceptDonation(donationId) {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`/recipient/accept_donation/${donationId}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const result = await response.json();
+            alert(result.message);
+            location.reload(); // Refresh the donation list
+        }
+
+        fetchDonations();
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/static/js/notifications.js"></script>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </nav>
+    
+    
+</body>
+</html>

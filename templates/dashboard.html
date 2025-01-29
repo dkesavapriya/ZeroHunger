@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <h1>Welcome to Your Dashboard</h1>
+    <h2>Role: {{ role }}</h2>
+
+    {% if role == 'Donor' %}
+        <h3>Your Donations</h3>
+        <ul>
+            {% for donation in donations %}
+                <li>
+                    <strong>{{ donation.title }}</strong>
+                    - {{ donation.description }}
+                    - Status: {{ 'Accepted' if donation.is_accepted else 'Pending' }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% elif role in ['Volunteer', 'Recipient'] %}
+        <h3>Nearby Donations</h3>
+        <ul>
+            {% for donation in donations %}
+                <li>
+                    <strong>{{ donation.title }}</strong>
+                    - {{ donation.description }}
+                    - Location: {{ donation.location }}
+                    <button onclick="acceptDonation({donation.id })">Accept</button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
