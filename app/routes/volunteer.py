@@ -1,19 +1,13 @@
-from flask import Blueprint, request, jsonify
-from app.models import User
-from app import db
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+from ..models import User
 
-volunteer_bp = Blueprint("volunteer", __name__)
+volunteer_bp = Blueprint('volunteer', __name__)
 
-@volunteer_bp.route("/register", methods=["POST"])
-def register_volunteer():
-    data = request.get_json()
-    name = data["name"]
-    email = data["email"]
-    password = data["password"]
-    location = data["location"]
-
-    volunteer = User(name=name, email=email, password=password, role="volunteer", location=location)
-    db.session.add(volunteer)
-    db.session.commit()
-
-    return jsonify({"message": "Volunteer registered successfully!"}), 201
+# Get all volunteers
+@volunteer_bp.route('/volunteers', methods=['GET'])
+@jwt_required()
+def get_volunteers():
+    volunteers = User.query.filter_by(role="volunteer").all()
+    volunteer_list = [{"id": v.id, "name": v.name, "email": v.email, "location": v.location} for v in volunteers]
+    return jsonify(volunteer_list), 200

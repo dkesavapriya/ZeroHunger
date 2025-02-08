@@ -1,5 +1,10 @@
+import os
+
 class Config:
-    SECRET_KEY = "your_secret_key"
-    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://usename:password@localhost/zerohunger"
+    SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")  # Change this to a strong secret key
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "mysql+pymysql://root:MSD@localhost/zerohunger")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = "your_jwt_secret_key"
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwtsecretkey")  # Change this for security
+    SOCKETIO_MESSAGE_QUEUE = os.getenv("REDIS_URL", "redis://")  # Required for real-time notifications
+    JWT_ACCESS_TOKEN_EXPIRES = False
+    

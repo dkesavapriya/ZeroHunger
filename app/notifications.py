@@ -1,65 +1,53 @@
-import threading
-import time
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
+from flask import request
+from app import socketio
 from app.models import User, Donation
-from app.utils import calculate_distance
-from flask import current_app
+from geopy.distance import geodesic
 
-# Initialize SocketIO (if not already in `app/__init__.py`)
-socketio = SocketIO(cors_allowed_origins="*")
+# Store connected users for real-time notifications
+connected_users = {}
 
-def notify_nearby_users(donation):
-    """
-    Notify nearby users (volunteers and recipients) about a new donation.
-    """
-    users = User.query.filter(User.role.in_(["Volunteer", "Recipient"])).all()
-    nearby_users = [
-        user for user in users if calculate_distance(donation.location, user.location) < 10  # Within 10 km radius
-    ]
+@socketio.on("connect")
+def handle_connect():
+    """Handles new user connections."""
+    user_id = request.args.get("user_id")  # Expect user_id to be passed on connection
+    if user_id:
+        connected_users[user_id] = request.sid
+    print(f"User {user_id} connected with session ID {request.sid}")
 
-    for user in nearby_users:
-        socketio.emit(
-            "new_donation",
-            {"message": f"New donation posted: {donation.title} at {donation.location}"},
-            room=str(user.id),
-        )
+@socketio.on("disconnect")
+def handle_disconnect():
+    """Handles user disconnections."""
+    for user_id, sid in connected_users.items():
+        if sid == request.sid:
+            del connected_users[user_id]
+            break
+    print(f"User disconnected: {request.sid}")
 
-    # Start a background thread for fallback notifications
-    thread = threading.Thread(target=send_fallback_notifications, args=(donation, nearby_users))
-    thread.daemon = True
-    thread.start()
+def send_notification(user_id, message):
+    """Send a notification to a specific user if they are connected."""
+    sid = connected_users.get(str(user_id))  # Convert user_id to string for dictionary lookup
+    if sid:
+        emit("notification", {"message": message}, room=sid)
 
-def notify_donor_acceptance(donation, user):
-    """
-    Notify the donor when their donation is accepted.
-    """
-    socketio.emit(
-        "donation_accepted",
-        {"message": f"Your donation '{donation.title}' has been accepted by {user.name}."},
-        room=str(donation.posted_by_id),
-    )
+# Notify nearby volunteers & recipients when a new donation is posted
+def notify_new_donation(donation):
+    all_users = User.query.filter(User.role.in_(["volunteer", "recipient"])).all()
+    
+    for user in all_users:
+        if user.latitude and user.longitude:
+            distance = geodesic((donation.latitude, donation.longitude), (user.latitude, user.longitude)).km
+            if distance <= 10:  # Only notify users within a 10 km radius
+                send_notification(user.id, f"New donation available near you: {donation.item_name}")
 
-def send_fallback_notifications(donation, initial_users):
-    """
-    Notify the next set of users if the donation is not accepted within a time frame.
-    """
-    time.sleep(60)  # Wait for 60 seconds before fallback notifications
+# Notify donor when their donation is accepted
+def notify_donor(donation):
+    donor = User.query.get(donation.donor_id)
+    if donor:
+        send_notification(donor.id, f"Your donation '{donation.item_name}' was accepted!")
 
-    with current_app.app_context():  # Ensure the database query runs within Flask's app context
-        donation = Donation.query.get(donation.id)
-
-        if not donation.is_accepted:
-            # Get all users excluding the initial notified users
-            all_users = User.query.filter(User.role.in_(["Volunteer", "Recipient"])).all()
-            next_users = [
-                user for user in all_users
-                if user.id not in [u.id for u in initial_users] and
-                calculate_distance(donation.location, user.location) < 20  # 20 km radius
-            ]
-
-            for user in next_users:
-                socketio.emit(
-                    "new_donation",
-                    {"message": f"Fallback notification: {donation.title} at {donation.location}"},
-                    room=str(user.id),
-                )
+# Notify donor when their donation is completed
+def notify_donation_completed(donation):
+    donor = User.query.get(donation.donor_id)
+    if donor:
+        send_notification(donor.id, f"Your donation '{donation.item_name}' has been completed!")

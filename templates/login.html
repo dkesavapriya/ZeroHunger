@@ -1,39 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Zero Hunger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Login</h1>
-    <form id="login-form">
-        <input type="email" name="email" placeholder="Email" required />
-        <input type="password" name="password" placeholder="Password" required />
-        <button type="submit">Login</button>
-    </form>
-    <script>
-        document.getElementById("login-form").onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            const response = await fetch("/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            });
-            const result = await response.json();
-            if (result.access_token) {
-                alert("Login successful!");
-                localStorage.setItem("token", result.access_token);
-            } else {
-                alert(result.error);
-            }
-        };
-    </script>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">Zero Hunger</a>
+        </div>
+    </nav>
+
+    <!-- Login Form -->
+    <div class="container my-5">
+        <h2 class="text-center">Login</h2>
+        <form id="loginForm" >
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" id="email" class="form-control" name="email" required>
+                
+                
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-control" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <p class="text-center mt-3">Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+    </div>
+
+    <footer class="text-center py-3 bg-dark text-white">
+        <p>&copy; 2025 Zero Hunger | All Rights Reserved</p>
+    </footer>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+
 </body>
 </html>
-<nav>
-    <a href="/">Home</a>
-    <a href="/dashboard">Dashboard</a>
-    <a href="/logout">Logout</a>
-</nav>
-

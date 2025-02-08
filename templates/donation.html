@@ -1,54 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Available Donations</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donations | Zero Hunger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Available Donations</h1>
-    <ul id="donation-list"></ul>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">Zero Hunger</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('donations') }}">Donations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('notifications') }}">Notifications</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Donation Posts -->
+    <div class="container my-5">
+        <h2 class="text-center">Available Donations</h2>
+        <div class="row">
+            {% if donations %}
+                {% for donation in donations %}
+                <div class="col-md-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ donation.food_item }}</h5>
+                            <p class="card-text"><strong>Quantity:</strong> {{ donation.quantity }}</p>
+                            <p class="card-text"><strong>Location:</strong> {{ donation.location }}</p>
+                            <p class="card-text"><small class="text-muted">Posted by {{ donation.donor_name }}</small></p>
+                            <button class="btn btn-success accept-donation" data-id="{{ donation.id }}">Accept Donation</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center">No donations available at the moment.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-3 bg-dark text-white">
+        <p>&copy; 2025 Zero Hunger | All Rights Reserved</p>
+    </footer>
 
     <script>
-        async function fetchDonations() {
-            const token = localStorage.getItem("token");
-            const response = await fetch("/recipient/donations", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const result = await response.json();
-
-            if (result.donations) {
-                const list = document.getElementById("donation-list");
-                result.donations.forEach((donation) => {
-                    const item = document.createElement("li");
-                    item.innerHTML = `
-                        <strong>${donation.title}</strong> - ${donation.description}
-                        <button onclick="acceptDonation(${donation.id})">Accept</button>
-                    `;
-                    list.appendChild(item);
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".accept-donation").forEach(button => {
+                button.addEventListener("click", function () {
+                    let donationId = this.getAttribute("data-id");
+                    fetch(`/accept_donation/${donationId}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ donation_id: donationId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Donation accepted successfully!");
+                            this.closest(".card").remove();
+                        } else {
+                            alert("Error accepting donation. Please try again.");
+                        }
+                    });
                 });
-            }
-        }
-
-        async function acceptDonation(donationId) {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`/recipient/accept_donation/${donationId}`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
             });
-            const result = await response.json();
-            alert(result.message);
-            location.reload(); // Refresh the donation list
-        }
-
-        fetchDonations();
+        });
     </script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/static/js/notifications.js"></script>
-    <nav>
-        <a href="/">Home</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/logout">Logout</a>
-    </nav>
-    
-    
+
 </body>
 </html>

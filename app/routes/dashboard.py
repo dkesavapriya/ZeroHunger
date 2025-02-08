@@ -1,31 +1,65 @@
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, jsonify,render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Donation, User
-from app.utils import calculate_distance
+from app.models import User, Donation, db
 
-dashboard_bp = Blueprint('dashboard', __name__)
+# Create the Blueprint for dashboard
+dashboard_bp = Blueprint("dashboard", __name__ ,url_prefix="/dashboard")
 
-@dashboard_bp.route('/dashboard', methods=['GET'])
+
+
+# Endpoint to fetch dashboard stats (total donations, accepted, pending, user donations)
+@dashboard_bp.route("/stats", methods=["GET"])
 @jwt_required()
-def dashboard():
-    """
-    Provide dashboard data based on user role.
-    """
-    current_user = get_jwt_identity()
-    user = User.query.get(current_user['id'])
+def get_dashboard_stats():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    # Get stats
+    total_donations = Donation.query.count()
+    accepted_donations = Donation.query.filter(Donation.accepted_by.isnot(None)).count()
+    pending_donations = total_donations - accepted_donations
+    user_donations = Donation.query.filter_by(donor_id=user_id).count()
+    user_accepted = Donation.query.filter_by(accepted_by_id=user_id).count()
 
-    if user.role == 'Donor':
-        # Fetch all donations posted by the user
-        donations = Donation.query.filter_by(posted_by_id=user.id).all()
-        return render_template('dashboard.html', role='Donor', donations=donations)
+    return jsonify({
+        "total_donations": total_donations,
+        "accepted_donations": accepted_donations,
+        "pending_donations": pending_donations,
+        "user_donations": user_donations,
+        "user_accepted": user_accepted
+    })
 
-    elif user.role in ['Volunteer', 'Recipient']:
-        # Fetch nearby donations
-        all_donations = Donation.query.filter_by(is_accepted=False).all()
-        nearby_donations = [
-            donation for donation in all_donations
-            if calculate_distance(user.location, donation.location) < 10
-        ]
-        return render_template('dashboard.html', role=user.role, donations=nearby_donations)
+# Fetch all available donations (only pending donations)
+@dashboard_bp.route("/donations", methods=["GET"])
+@jwt_required()
+def get_donations():
+    donations = Donation.query.filter_by(status="Pending").all()
+    return jsonify([{
+        "id": d.id,
+        "food_item": d.food_item,
+        "quantity": d.quantity,
+        "status": d.status
+    } for d in donations]), 200
 
-    return jsonify({"error": "Invalid user role"}), 400
+# Accept a donation (for volunteers or recipients only)
+@dashboard_bp.route("/donations/accept/<int:donation_id>", methods=["POST"])
+@jwt_required()
+def accept_donation(donation_id):
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    # Check if user has the correct role to accept donations
+    if user.role not in ["volunteer", "recipient"]:
+        return jsonify({"error": "Only volunteers or recipients can accept donations"}), 403
+
+    # Get the donation and ensure it's in the "Pending" status
+    donation = Donation.query.get(donation_id)
+    if not donation or donation.status != "Pending":
+        return jsonify({"error": "Invalid donation"}), 400
+
+    # Accept the donation
+    donation.status = "Accepted"
+    donation.accepted_by = user_id
+    db.session.commit()
+
+    return jsonify({"message": "Donation accepted successfully"}), 200

@@ -1,67 +1,66 @@
 from flask import Blueprint, request, jsonify
+#from app import db
+from app.models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.models import User
-from app import db
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route("/register", methods=["POST"])
+# Register a new user
+@auth_bp.route("/register", methods=["GET","POST"])
 def register():
-    """
-    Register a new user.
-    """
-    data = request.get_json()
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
-    role = data.get("role")  # Volunteer, Recipient, or Donor
+    data = request.json
+    existing_user = User.query.filter_by(email=data["email"]).first()
 
-    if not name or not email or not password or not role:
-        return jsonify({"error": "All fields are required"}), 400
-
-    # Check if the user already exists
-    if User.query.filter_by(email=email).first():
+    if existing_user:
         return jsonify({"error": "User already exists"}), 400
 
-    # Hash the password
-    hashed_password = generate_password_hash(password)
-
-    # Create the user
-    user = User(name=name, email=email, password=hashed_password, role=role)
-    db.session.add(user)
+    hashed_password = generate_password_hash(data["password"])
+    new_user = User(
+        name=data["name"],
+        email=data["email"],
+        password=hashed_password,
+        role=data["role"],
+        latitude=data.get("latitude"),
+        longitude=data.get("longitude")
+    )
+    db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully!"}), 201
+    return jsonify({"message": "User registered successfully"}), 201
 
-
-@auth_bp.route("/login", methods=["POST"])
+# Login user
+'''@auth_bp.route("/login", methods=["POST"])
 def login():
-    """
-    Log in a user and return a JWT token.
-    """
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+    data = request.json
+    
+    if not data.get("email") or not data.get("password"):
+        return jsonify({"error": "Missing email or password"}), 400
+        
+    user = User.query.filter_by(email=data["email"]).first()
 
-    if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+    if not user or not check_password_hash(user.password, data["password"]):
+        return jsonify({"error": "Invalid email or password"}), 401
 
-    # Find the user
-    user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"error": "Invalid credentials"}), 401
+    access_token = create_access_token(identity=user.id)
+    return jsonify({"token": access_token, "role": user.role}), 200'''
 
-    # Create a JWT token
-    access_token = create_access_token(identity={"id": user.id, "role": user.role})
-    return jsonify({"access_token": access_token, "message": "Login successful!"}), 200
-
-
-@auth_bp.route("/protected", methods=["GET"])
+# Get user details
+@auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
-def protected():
-    """
-    Example of a protected route.
-    """
-    current_user = get_jwt_identity()
-    return jsonify({"message": "Access granted!", "user": current_user}), 200
+def profile():
+    print(request.headers)  # Check if Authorization header is received
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    return jsonify({
+        "name": user.name,
+        "email": user.email,
+        "role": user.role
+    }), 200
+
+@auth_bp.route("/logout")
+@jwt_required()  # Ensure only logged-in users can call this
+def logout():
+    return jsonify({"message": "Logout successful. Please delete the token on the client-side."}), 200
+

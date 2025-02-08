@@ -1,31 +1,41 @@
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+db = SQLAlchemy()
 
 class User(db.Model):
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-
-class Donation(db.Model):
-    __tablename__ = "donations"
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(20), default="available")  # available, accepted, etc.
-    posted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    posted_by = db.relationship("User", foreign_keys=[posted_by_id])
-    accepted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    accepted_by = db.relationship("User", foreign_keys=[accepted_by_id])
-    is_accepted = db.Column(db.Boolean, default=False)  # New field
-    #accepted_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # New field
-class Volunteer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    role = db.Column(db.String(50), nullable=False)
-    location = db.Column(db.String(200), nullable=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(50), nullable=False)  # 'volunteer', 'recipient', 'donor'
+    address = db.Column(db.String(255), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)   # Location for notifications
+    longitude = db.Column(db.Float, nullable=True)
+    contact_number = db.Column(db.String(15), nullable=True)
+
+    donations = db.relationship('Donation', backref='donor', lazy=True)
+
+    def __repr__(self):
+        return f"<User {self.name} - {self.role}>"
+
+class Donation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    donor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    food_item = db.Column(db.String(255), nullable=False)
+    quantity = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(50), default="Available")  # Available, Accepted, Completed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Donation {self.food_item} - {self.status}>"
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f"<Notification to {self.recipient_id}>"

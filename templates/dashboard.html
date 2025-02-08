@@ -1,37 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>User Dashboard</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Zero Hunger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Welcome to Your Dashboard</h1>
-    <h2>Role: {{ role }}</h2>
 
-    {% if role == 'Donor' %}
-        <h3>Your Donations</h3>
-        <ul>
-            {% for donation in donations %}
-                <li>
-                    <strong>{{ donation.title }}</strong>
-                    - {{ donation.description }}
-                    - Status: {{ 'Accepted' if donation.is_accepted else 'Pending' }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% elif role in ['Volunteer', 'Recipient'] %}
-        <h3>Nearby Donations</h3>
-        <ul>
-            {% for donation in donations %}
-                <li>
-                    <strong>{{ donation.title }}</strong>
-                    - {{ donation.description }}
-                    - Location: {{ donation.location }}
-                    <button onclick="acceptDonation({donation.id })">Accept</button>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-    <script src="/static/js/main.js"></script>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">Zero Hunger</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger ml-auto">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Dashboard -->
+    <div class="container my-5">
+        <h2 class="text-center">Welcome, {{ user.name }}</h2>
+
+        <div class="row my-4">
+            <!-- My Donations Card -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">My Donations</h5>
+                        <p class="card-text">View and manage your donations.</p>
+                        <a href="{{ url_for('donations') }}" class="btn btn-primary">View Donations</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Card -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Notifications</h5>
+                        <p class="card-text">View real-time alerts for new donations.</p>
+                        <a href="{{ url_for('notifications') }}" class="btn btn-primary">View Notifications</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Profile</h5>
+                        <p class="card-text">Update your personal information.</p>
+                        <a href="{{ url_for('profile') }}" class="btn btn-primary">Edit Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Donations</h5>
+                        <p id="total-donations">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Accepted Donations</h5>
+                        <p id="accepted-donations">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Pending Donations</h5>
+                        <p id="pending-donations">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Donations -->
+        <div class="my-5">
+            <h4>Recent Donations</h4>
+            <div id="donation-list"></div>
+        </div>
+    </div>
+
+    <footer class="text-center py-3 bg-dark text-white">
+        <p>&copy; 2025 Zero Hunger | All Rights Reserved</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>
