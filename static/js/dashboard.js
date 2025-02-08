@@ -1,7 +1,10 @@
 document.addEventListener("DOMContentLoaded", async function () {
     const token = localStorage.getItem("token");
     if (!token) {
-    window.location.href = "login.html";
+        console.log("No token found, redirecting to login...");
+        window.location.href = "login.html";  // ✅ Redirect to login if no token
+    } else {
+        console.log("Token found, loading dashboard...");
     }
     
     await fetchDonations();

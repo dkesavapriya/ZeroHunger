@@ -16,8 +16,14 @@ document.getElementById("loginForm").addEventListener("submit", async function (
     let response = await fetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-    });
+        body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        })
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error("Error:", error));
     
     let data = await response.json();  // Parse the response as JSON
     console.log("Server response:", data);
@@ -25,7 +31,7 @@ document.getElementById("loginForm").addEventListener("submit", async function (
         // On successful login, store the token in localStorage and redirect to dashboard
         
         localStorage.setItem("token", data.token);
-        window.location.href = "dashboard.html";
+        window.location.href = "/dashboard";
     } else {
         // Display error message if login fails
         alert(data.error);
